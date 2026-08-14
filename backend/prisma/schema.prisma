@@ -1,0 +1,216 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String     @id @default(auto()) @map("_id") @db.ObjectId
+  name         String
+  email        String     @unique
+  phone        String?
+  passwordHash String
+  role         String     @default("PATIENT")
+  isActive     Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  doctor       Doctor?
+  patient      Patient?
+  auditLogs    AuditLog[]
+}
+
+model Hospital {
+  id                 String        @id @default(auto()) @map("_id") @db.ObjectId
+  name               String
+  registrationNumber String        @unique
+  address            String
+  city               String
+  state              String
+  phone              String
+  email              String
+  logo               String?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  doctors            Doctor[]
+  appointments       Appointment[]
+  encounters         Encounter[]
+  consents           Consent[]
+}
+
+model Doctor {
+  id                 String         @id @default(auto()) @map("_id") @db.ObjectId
+  userId             String         @unique @db.ObjectId
+  user               User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  hospitalId         String         @db.ObjectId
+  hospital           Hospital       @relation(fields: [hospitalId], references: [id])
+  specialization     String
+  qualification      String
+  registrationNumber String
+  experience         Int
+  consultationFee    Float
+  bio                String?
+  profilePhoto       String?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  appointments       Appointment[]
+  encounters         Encounter[]
+  prescriptions      Prescription[]
+  consents           Consent[]
+}
+
+model Patient {
+  id                    String            @id @default(auto()) @map("_id") @db.ObjectId
+  userId                String            @unique @db.ObjectId
+  user                  User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  patientNumber         String            @unique
+  dateOfBirth           DateTime?
+  gender                String?
+  bloodGroup            String?
+  phone                 String?
+  address               String?
+  emergencyContact      String?
+  emergencyContactPhone String?
+  allergies             String?
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  appointments          Appointment[]
+  encounters            Encounter[]
+  vitals                Vitals[]
+  prescriptions         Prescription[]
+  documents             MedicalDocument[]
+  consents              Consent[]
+  auditLogs             AuditLog[]
+}
+
+model Appointment {
+  id              String       @id @default(auto()) @map("_id") @db.ObjectId
+  patientId       String       @db.ObjectId
+  patient         Patient      @relation(fields: [patientId], references: [id])
+  doctorId        String       @db.ObjectId
+  doctor          Doctor       @relation(fields: [doctorId], references: [id])
+  hospitalId      String       @db.ObjectId
+  hospital        Hospital     @relation(fields: [hospitalId], references: [id])
+  appointmentDate DateTime
+  appointmentTime String
+  reason          String?
+  status          String       @default("REQUESTED")
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  encounter       Encounter?
+  consent         Consent?
+}
+
+model Encounter {
+  id             String         @id @default(auto()) @map("_id") @db.ObjectId
+  appointmentId  String?        @unique @db.ObjectId
+  appointment    Appointment?   @relation(fields: [appointmentId], references: [id])
+  patientId      String         @db.ObjectId
+  patient        Patient        @relation(fields: [patientId], references: [id])
+  doctorId       String         @db.ObjectId
+  doctor         Doctor         @relation(fields: [doctorId], references: [id])
+  hospitalId     String         @db.ObjectId
+  hospital       Hospital       @relation(fields: [hospitalId], references: [id])
+  chiefComplaint String
+  symptoms       String?
+  diagnosis      String
+  clinicalNotes  String?
+  treatmentPlan  String?
+  followUpDate   DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  vitals         Vitals[]
+  prescriptions  Prescription[]
+}
+
+model Vitals {
+  id              String     @id @default(auto()) @map("_id") @db.ObjectId
+  encounterId     String?    @db.ObjectId
+  encounter       Encounter? @relation(fields: [encounterId], references: [id])
+  patientId       String     @db.ObjectId
+  patient         Patient    @relation(fields: [patientId], references: [id])
+  bloodPressure   String?
+  heartRate       Int?
+  temperature     Float?
+  spo2            Int?
+  respiratoryRate Int?
+  weight          Float?
+  height          Float?
+  recordedAt      DateTime   @default(now())
+}
+
+model Prescription {
+  id          String             @id @default(auto()) @map("_id") @db.ObjectId
+  encounterId String?            @db.ObjectId
+  encounter   Encounter?         @relation(fields: [encounterId], references: [id])
+  patientId   String             @db.ObjectId
+  patient     Patient            @relation(fields: [patientId], references: [id])
+  doctorId    String             @db.ObjectId
+  doctor      Doctor             @relation(fields: [doctorId], references: [id])
+  notes       String?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  items       PrescriptionItem[]
+}
+
+model PrescriptionItem {
+  id             String       @id @default(auto()) @map("_id") @db.ObjectId
+  prescriptionId String       @db.ObjectId
+  prescription   Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  medicineName   String
+  dosage         String
+  frequency      String
+  duration       String
+  instructions   String?
+  quantity       Int?
+}
+
+model MedicalDocument {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  patientId    String   @db.ObjectId
+  patient      Patient  @relation(fields: [patientId], references: [id])
+  uploadedBy   String
+  documentType String   @default("OTHER")
+  fileName     String
+  filePath     String
+  description  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Consent {
+  id                   String       @id @default(auto()) @map("_id") @db.ObjectId
+  patientId            String       @db.ObjectId
+  patient              Patient      @relation(fields: [patientId], references: [id])
+  doctorId             String       @db.ObjectId
+  doctor               Doctor       @relation(fields: [doctorId], references: [id])
+  hospitalId           String       @db.ObjectId
+  hospital             Hospital     @relation(fields: [hospitalId], references: [id])
+  appointmentId        String?      @unique @db.ObjectId
+  appointment          Appointment? @relation(fields: [appointmentId], references: [id])
+  purpose              String       @default("Consultation")
+  status               String       @default("PENDING")
+  canViewHistory       Boolean      @default(true)
+  canViewVitals        Boolean      @default(true)
+  canViewPrescriptions Boolean      @default(true)
+  canViewReports       Boolean      @default(true)
+  expiresAt            DateTime?
+  grantedAt            DateTime?
+  revokedAt            DateTime?
+  createdAt            DateTime     @default(now())
+}
+
+model AuditLog {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId       String   @db.ObjectId
+  user         User     @relation(fields: [userId], references: [id])
+  patientId    String?  @db.ObjectId
+  patient      Patient? @relation(fields: [patientId], references: [id])
+  action       String
+  resourceType String
+  resourceId   String?
+  metadata     String?
+  timestamp    DateTime @default(now())
+}
