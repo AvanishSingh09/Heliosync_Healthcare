@@ -146,8 +146,8 @@ export const getDoctorAppointments = async (req: Request, res: Response) => {
             user: { select: { name: true, email: true, phone: true } },
           },
         },
-        consent: true,
-        encounter: true,
+        consents: true,
+        encounters: true,
       },
       orderBy: { appointmentTime: 'asc' },
     });

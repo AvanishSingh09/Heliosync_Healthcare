@@ -99,13 +99,13 @@ model Appointment {
   status          String       @default("REQUESTED")
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
-  encounter       Encounter?
-  consent         Consent?
+  encounters      Encounter[]
+  consents        Consent[]
 }
 
 model Encounter {
   id             String         @id @default(auto()) @map("_id") @db.ObjectId
-  appointmentId  String?        @unique @db.ObjectId
+  appointmentId  String?        @db.ObjectId
   appointment    Appointment?   @relation(fields: [appointmentId], references: [id])
   patientId      String         @db.ObjectId
   patient        Patient        @relation(fields: [patientId], references: [id])
@@ -188,7 +188,7 @@ model Consent {
   doctor               Doctor       @relation(fields: [doctorId], references: [id])
   hospitalId           String       @db.ObjectId
   hospital             Hospital     @relation(fields: [hospitalId], references: [id])
-  appointmentId        String?      @unique @db.ObjectId
+  appointmentId        String?      @db.ObjectId
   appointment          Appointment? @relation(fields: [appointmentId], references: [id])
   purpose              String       @default("Consultation")
   status               String       @default("PENDING")

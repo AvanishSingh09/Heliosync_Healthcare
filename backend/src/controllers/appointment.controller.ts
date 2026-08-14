@@ -66,8 +66,8 @@ export const getAppointments = async (req: Request, res: Response) => {
           hospital: {
             select: { id: true, name: true, city: true },
           },
-          consent: true,
-          encounter: true,
+          consents: true,
+          encounters: true,
         },
         orderBy: [{ appointmentDate: 'desc' }, { appointmentTime: 'asc' }],
       }),
@@ -193,8 +193,8 @@ export const getAppointmentById = async (req: Request, res: Response) => {
           },
         },
         hospital: true,
-        consent: true,
-        encounter: {
+        consents: true,
+        encounters: {
           include: {
             vitals: true,
             prescriptions: {
