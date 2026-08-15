@@ -10,7 +10,7 @@
 | :--- | :--- | :--- | :--- |
 | **Backend API** | Render | ![Render Status](https://img.shields.io/badge/Render-Online-brightgreen?logo=render) | [https://heliosync-healthcare-4.onrender.com](https://heliosync-healthcare-4.onrender.com) |
 | **API Health Check** | Render | ![Health Check](https://img.shields.io/badge/Health-200%20OK-blue) | [https://heliosync-healthcare-4.onrender.com/api/health](https://heliosync-healthcare-4.onrender.com/api/health) |
-| **Frontend Web App** | Vercel | ![Vercel Deployed](https://img.shields.io/badge/Vercel-Deployed-black?logo=vercel) | [https://heliosync-healthcare.vercel.app](https://heliosync-healthcare.vercel.app) |
+| **Frontend Web App** | Vercel | ![Vercel Deployed](https://img.shields.io/badge/Vercel-Deployed-black?logo=vercel) | [https://heliosync-healthcare-quwk.vercel.app](https://heliosync-healthcare-quwk.vercel.app) |
 
 ---
 
