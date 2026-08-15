@@ -211,7 +211,4 @@ hospital_management_project/
 * **Cryptographic Hashing**: All passwords are salted and hashed with `bcryptjs`.
 * **Immutable Audit Trail**: Every sensitive record access and consent update produces an `AuditLog` entry.
 
----
 
-## 📄 License
-This project is licensed under the MIT License.
