@@ -24,6 +24,16 @@ app.use(express.urlencoded({ extended: true }));
 // Serve static uploads
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
+// Root status
+app.get('/', (req, res) => {
+  res.json({
+    status: 'online',
+    platform: 'Heliosync Healthcare Platform API Server',
+    health: '/api/health',
+    timestamp: new Date().toISOString(),
+  });
+});
+
 // Health Check
 app.get('/api/health', (req, res) => {
   res.json({
