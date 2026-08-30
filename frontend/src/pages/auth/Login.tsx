@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { authService } from '../../services/auth';
+import api from '../../services/api';
 import { Card } from '../../components/ui/Card';
 import { Input } from '../../components/ui/Input';
 import { Button } from '../../components/ui/Button';
-import { HeartPulse, Lock, Mail, ShieldCheck, Stethoscope, User, Building2 } from 'lucide-react';
+import { HeartPulse, Lock, Mail, Stethoscope, User, Building2 } from 'lucide-react';
 
 export const Login: React.FC = () => {
   const [email, setEmail] = useState<string>('patient@heliosync.demo');
@@ -15,6 +16,11 @@ export const Login: React.FC = () => {
 
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  // Pre-warm backend on page load so it's awake by the time user clicks Sign In
+  useEffect(() => {
+    api.get('/health').catch(() => {});
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
