@@ -3,6 +3,7 @@ import { prisma } from '../config';
 import { successResponse, errorResponse } from '../utils/response';
 import { AppointmentStatus, Role } from '../types';
 import { logAudit } from '../services/audit.service';
+import { invalidatePatientCaches } from '../config/redis';
 
 export const createEncounter = async (req: Request, res: Response) => {
   try {
@@ -117,6 +118,9 @@ export const createEncounter = async (req: Request, res: Response) => {
         hasVitals: !!result.vitals,
       },
     });
+
+    // Invalidate Redis caches for patient so doctor and patient see updated records instantly
+    await invalidatePatientCaches(patientId);
 
     return successResponse(res, result, 'Consultation encounter recorded successfully', 201);
   } catch (error: any) {

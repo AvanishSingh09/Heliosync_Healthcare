@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { prisma } from '../config';
 import { successResponse, errorResponse } from '../utils/response';
 import { logAudit } from '../services/audit.service';
+import { invalidatePatientCaches } from '../config/redis';
 
 export const recordVitals = async (req: Request, res: Response) => {
   try {
@@ -43,6 +44,8 @@ export const recordVitals = async (req: Request, res: Response) => {
       resourceType: 'Vitals',
       resourceId: vitals.id,
     });
+
+    await invalidatePatientCaches(patientId);
 
     return successResponse(res, vitals, 'Vitals recorded successfully', 201);
   } catch (error: any) {

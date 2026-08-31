@@ -182,13 +182,14 @@ export const login = async (req: Request, res: Response) => {
       doctorId: user.doctor?.id,
     });
 
-    await logAudit({
+    // Asynchronously log audit without blocking the login response
+    logAudit({
       userId: user.id,
       patientId: user.patient?.id,
       action: 'LOGIN',
       resourceType: 'User',
       resourceId: user.id,
-    });
+    }).catch((err) => console.error('Audit log error:', err));
 
     return successResponse(
       res,

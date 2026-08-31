@@ -3,6 +3,7 @@ import { prisma } from '../config';
 import { successResponse, errorResponse } from '../utils/response';
 import { Role } from '../types';
 import { logAudit } from '../services/audit.service';
+import { invalidatePatientCaches } from '../config/redis';
 
 export const createPrescription = async (req: Request, res: Response) => {
   try {
@@ -54,6 +55,8 @@ export const createPrescription = async (req: Request, res: Response) => {
       resourceId: prescription.id,
       metadata: { itemsCount: items.length },
     });
+
+    await invalidatePatientCaches(patientId);
 
     return successResponse(res, prescription, 'Prescription created successfully', 201);
   } catch (error: any) {

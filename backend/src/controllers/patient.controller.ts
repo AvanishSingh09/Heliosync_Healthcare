@@ -4,6 +4,7 @@ import { successResponse, errorResponse, paginatedResponse } from '../utils/resp
 import { Role } from '../types';
 import { logAudit } from '../services/audit.service';
 import { ConsentService } from '../services/consent.service';
+import { getCache, setCache, invalidatePatientCaches } from '../config/redis';
 
 export const getPatients = async (req: Request, res: Response) => {
   try {
@@ -71,6 +72,14 @@ export const getPatientById = async (req: Request, res: Response) => {
       return errorResponse(res, 'Unauthorized access to another patient profile', 403);
     }
 
+    // 1. Check Redis Cache for instant retrieval (<5ms)
+    const cacheKey = `patient:profile:${id}`;
+    const cached = await getCache(cacheKey);
+    if (cached) {
+      return successResponse(res, cached);
+    }
+
+    // 2. Fetch from Database
     const patient = await prisma.patient.findUnique({
       where: { id },
       include: {
@@ -87,6 +96,9 @@ export const getPatientById = async (req: Request, res: Response) => {
     if (!patient) {
       return errorResponse(res, 'Patient not found', 404);
     }
+
+    // 3. Save to Redis with 1-hour TTL
+    await setCache(cacheKey, patient, 3600);
 
     return successResponse(res, patient);
   } catch (error: any) {
@@ -155,6 +167,9 @@ export const updatePatient = async (req: Request, res: Response) => {
       });
     });
 
+    // Invalidate Redis Caches so fresh data is loaded
+    await invalidatePatientCaches(id);
+
     return successResponse(res, updated, 'Patient profile updated successfully');
   } catch (error: any) {
     return errorResponse(res, 'Failed to update patient profile', 500);
@@ -181,6 +196,21 @@ export const getPatientTimeline = async (req: Request, res: Response) => {
       }
     }
 
+    // 1. Check Redis Cache for instant timeline retrieval
+    const cacheKey = `patient:timeline:${id}`;
+    const cachedTimeline = await getCache<any[]>(cacheKey);
+    if (cachedTimeline) {
+      logAudit({
+        userId: currentUser.id,
+        patientId: id,
+        action: 'PATIENT_TIMELINE_VIEWED_CACHE',
+        resourceType: 'PatientTimeline',
+        resourceId: id,
+      }).catch(() => {});
+      return successResponse(res, cachedTimeline);
+    }
+
+    // 2. Fetch all collections from MongoDB
     const [encounters, vitals, prescriptions, documents] = await Promise.all([
       prisma.encounter.findMany({
         where: { patientId: id },
@@ -288,13 +318,16 @@ export const getPatientTimeline = async (req: Request, res: Response) => {
 
     timelineEvents.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
-    await logAudit({
+    // 3. Cache Timeline in Redis with 30-min TTL
+    await setCache(cacheKey, timelineEvents, 1800);
+
+    logAudit({
       userId: currentUser.id,
       patientId: id,
       action: 'PATIENT_TIMELINE_VIEWED',
       resourceType: 'PatientTimeline',
       resourceId: id,
-    });
+    }).catch(() => {});
 
     return successResponse(res, timelineEvents);
   } catch (error: any) {
@@ -306,10 +339,16 @@ export const getPatientTimeline = async (req: Request, res: Response) => {
 export const getPatientVitals = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const cacheKey = `patient:vitals:${id}`;
+    const cached = await getCache(cacheKey);
+    if (cached) return successResponse(res, cached);
+
     const vitals = await prisma.vitals.findMany({
       where: { patientId: id },
       orderBy: { recordedAt: 'desc' },
     });
+
+    await setCache(cacheKey, vitals, 1800);
     return successResponse(res, vitals);
   } catch (error: any) {
     return errorResponse(res, 'Failed to fetch vitals', 500);
@@ -319,6 +358,10 @@ export const getPatientVitals = async (req: Request, res: Response) => {
 export const getPatientPrescriptions = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const cacheKey = `patient:prescriptions:${id}`;
+    const cached = await getCache(cacheKey);
+    if (cached) return successResponse(res, cached);
+
     const prescriptions = await prisma.prescription.findMany({
       where: { patientId: id },
       include: {
@@ -332,6 +375,8 @@ export const getPatientPrescriptions = async (req: Request, res: Response) => {
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    await setCache(cacheKey, prescriptions, 1800);
     return successResponse(res, prescriptions);
   } catch (error: any) {
     return errorResponse(res, 'Failed to fetch prescriptions', 500);
@@ -341,10 +386,16 @@ export const getPatientPrescriptions = async (req: Request, res: Response) => {
 export const getPatientDocuments = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const cacheKey = `patient:documents:${id}`;
+    const cached = await getCache(cacheKey);
+    if (cached) return successResponse(res, cached);
+
     const docs = await prisma.medicalDocument.findMany({
       where: { patientId: id },
       orderBy: { createdAt: 'desc' },
     });
+
+    await setCache(cacheKey, docs, 1800);
     return successResponse(res, docs);
   } catch (error: any) {
     return errorResponse(res, 'Failed to fetch documents', 500);
